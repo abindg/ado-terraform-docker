@@ -23,7 +23,7 @@ stages:
         script: echo "this works"
     - task: Docker@2
       inputs:
-        containerRegistry: 'archieacr-sc'
+        containerRegistry: $(acrsc)
         repository: $(reponame)
         command: 'buildAndPush'
         Dockerfile: '**/Dockerfile'
