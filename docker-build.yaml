@@ -68,3 +68,10 @@ stages:
                 namespace: $(Dev_Env)
                 manifests: '$(Pipeline.Workspace)/kube-manifests/testdeployment.yaml'
                 containers: '$(acrname).azurecr.io/$(reponame):$(tag_id)'
+            - task: KubernetesManifest@0
+              displayName: Deploy the Dev Svc
+              inputs:
+                action: 'deploy'
+                kubernetesServiceConnection: $(akssc-dev)
+                namespace: $(Dev_Env)
+                manifests: '$(Pipeline.Workspace)/kube-manifests/testsvc.yaml'
