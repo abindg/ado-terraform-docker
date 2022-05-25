@@ -28,17 +28,43 @@ stages:
         command: 'buildAndPush'
         Dockerfile: '**/Dockerfile'
         tags: $(tag_id)
-    - task: CopyFiles@2
+    - task: PublishPipelineArtifact@1
       inputs:
-        SourceFolder: '$(System.DefaultWorkingDirectory)/kube-manifests'
-        Contents: '**'
-        TargetFolder: '$(Build.ArtifactStagingDirectory)'
-    - task: Bash@3
-      inputs:
-        targetType: inline
-        script: echo "the contents of the target directory after copy are"; ls -lRt $(Build.ArtifactStagingDirectory)
-    - task: PublishBuildArtifacts@1
-      inputs:
-        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-        ArtifactName: 'kube-manifests'
-        publishLocation: 'Container'
+        targetPath: '$(System.DefaultWorkingDirectory)/kube-manifests'
+        artifact: 'kube-manifests'
+        publishLocation: 'pipeline'
+
+- stage: DeploytoDev
+  displayName: Deploy to Dev
+  jobs:
+    - deployment: DeploytoDev
+      displayName: Deploy to Dev
+      pool:
+        vmImage: ubuntu-latest
+      environment: $(Dev_Env)
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+            - task: KubernetesManifest@0
+              displayName: Create Secret Dev NS
+              inputs:
+                action: 'createSecret'
+                kubernetesServiceConnection: $(akssc-dev)
+                namespace: $(Dev_Env)
+                secretType: 'dockerRegistry'
+                secretName: '$(Dev_Env)-$(client_name)-secret'
+                dockerRegistryEndpoint: $(acrsc)
+              
+            - task: Bash@3
+              inputs:
+                targetType: 'inline'
+                script: 'sed -i ''s/image_name/$(image_name):$(tag_id)/g'' $(Pipeline.Workspace)/kube-manifests/testdeployment.yaml'
+            - task: KubernetesManifest@0
+              displayName: Deploy to Dev Namespace
+              inputs:
+                action: 'deploy'
+                kubernetesServiceConnection: $(akssc-dev)
+                namespace: $(Dev_Env)
+                manifests: '$(Pipeline.Workspace)/kube-manifests/testdeployment.yaml'
+                containers: '$(acrname).azurecr.io/$(reponame):$(tag_id)'
