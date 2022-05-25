@@ -59,7 +59,7 @@ stages:
             - task: Bash@3
               inputs:
                 targetType: 'inline'
-                script: 'sed -i ''s/image_name/$(image_name):$(tag_id)/g'' $(Pipeline.Workspace)/kube-manifests/testdeployment.yaml'
+                script: 'sed -i ''s;image_name;$(image_name):$(tag_id);g'' $(Pipeline.Workspace)/kube-manifests/testdeployment.yaml'
             - task: KubernetesManifest@0
               displayName: Deploy to Dev Namespace
               inputs:
